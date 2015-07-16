@@ -141,7 +141,6 @@ public class MVCRoute {
 		if (authHandler != null) {
 			//Maybe could be replaced by some regex like pathFinal + "*" ?
 			router.route(httpMethodFinal, pathFinal).handler(CookieHandler.create());
-			router.route(httpMethodFinal, pathFinal).handler(BodyHandler.create());
 			router.route(httpMethodFinal, pathFinal).handler(SessionHandler.create(LocalSessionStore.create(config.vertx)));
 			router.route(httpMethodFinal, pathFinal).handler(UserSessionHandler.create(config.authProvider));
 			router.route(httpMethodFinal, pathFinal).handler(authHandler);
