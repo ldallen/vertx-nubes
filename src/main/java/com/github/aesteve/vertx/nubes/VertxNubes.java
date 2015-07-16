@@ -121,11 +121,10 @@ public class VertxNubes {
 		registerAnnotationHandler(Cookies.class, cookieHandler);
 		registerAnnotationHandler(CookieValue.class, cookieHandler);
 		registerAnnotationHandler(Throttled.class, RateLimitationHandler.create(config));
-//		Don't know how to avoid "already read" exception without these lines commented
-//		registerAnnotationHandler(GET.class, bodyHandler);
-//		registerAnnotationHandler(POST.class, bodyHandler);
-//		registerAnnotationHandler(PUT.class, bodyHandler);
-//		registerAnnotationHandler(PATCH.class, bodyHandler);
+		registerAnnotationHandler(GET.class, bodyHandler);
+		registerAnnotationHandler(POST.class, bodyHandler);
+		registerAnnotationHandler(PUT.class, bodyHandler);
+		registerAnnotationHandler(PATCH.class, bodyHandler);
 		registerTypeProcessor(PaginationContext.class, new PaginationProcessor());
 		registerTypeProcessor(Payload.class, new PayloadTypeProcessor(marshallers));
 		registerAnnotationProcessor(Redirect.class, new ClientRedirectProcessorFactory());

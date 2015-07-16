@@ -42,6 +42,7 @@ public class MVCRoute {
 	private Config config;
 	private boolean disabled;
 	private BiConsumer<RoutingContext, ?> returnHandler;
+	private String afterRedirectUrl;
 
 	public MVCRoute(Object instance, String path, HttpMethod method, Config config, Handler<RoutingContext> authHandler, boolean disabled) {
 		this.instance = instance;
@@ -144,7 +145,9 @@ public class MVCRoute {
 			router.route(httpMethodFinal, pathFinal).handler(SessionHandler.create(LocalSessionStore.create(config.vertx)));
 			router.route(httpMethodFinal, pathFinal).handler(UserSessionHandler.create(config.authProvider));
 			router.route(httpMethodFinal, pathFinal).handler(authHandler);
+
 			if (loginRedirect != null && !"".equals(loginRedirect)) {
+				afterRedirectUrl = pathFinal; //We set the afterRedirectUrl only if there is a loginRedirect
 				router.post(loginRedirect).handler(CookieHandler.create());
 				router.post(loginRedirect).handler(BodyHandler.create());
 				router.post(loginRedirect).handler(SessionHandler.create(LocalSessionStore.create(config.vertx)));
@@ -161,8 +164,9 @@ public class MVCRoute {
 					router.route(httpMethodFinal, pathFinal).handler(handler);
 				}
 			} else {
-				router.route(httpMethodFinal, pathFinal).handler(handler);
-			}
+				if(!(pathFinal.equals(afterRedirectUrl) && (handler instanceof BodyHandler))) //We don't attach the BodyHandler
+					router.route(httpMethodFinal, pathFinal).handler(handler);				  //when path is same as afterRedirectUrl
+			}																				  //to avoid "body already read" exception
 
 		});
 		int i = 0;
