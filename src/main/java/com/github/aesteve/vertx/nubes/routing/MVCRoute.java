@@ -37,6 +37,7 @@ public class MVCRoute {
 	private MVCRoute redirectRoute;
 	private Handler<RoutingContext> authHandler;
 	private String loginRedirect;
+	private String logoutRedirect;
 	private Handler<RoutingContext> preInterceptor;
 	private Handler<RoutingContext> postInterceptor;
 	private Config config;
@@ -67,6 +68,10 @@ public class MVCRoute {
 
 	public void setLoginRedirect(String loginRedirect) {
 		this.loginRedirect = loginRedirect;
+	}
+
+	public void setLogoutRedirect(String logoutRedirect) {
+		this.logoutRedirect = logoutRedirect;
 	}
 
 	public void addProcessor(Processor processor) {
@@ -155,6 +160,18 @@ public class MVCRoute {
 				router.post(loginRedirect).handler(FormLoginHandler.create(config.authProvider));
 			}
 		}
+
+		if (logoutRedirect != null){
+			router.get(pathFinal).handler(CookieHandler.create());
+			router.get(pathFinal).handler(BodyHandler.create());
+			router.get(pathFinal).handler(SessionHandler.create(LocalSessionStore.create(config.vertx)));
+			router.get(pathFinal).handler(UserSessionHandler.create(config.authProvider));
+			router.get(pathFinal).handler(context -> {
+				context.clearUser();
+				context.response().putHeader("location", logoutRedirect).setStatusCode(302).end();
+			});
+		}
+
 		processors.forEach(processor -> {
 			router.route(httpMethodFinal, pathFinal).handler(processor::preHandle);
 		});
