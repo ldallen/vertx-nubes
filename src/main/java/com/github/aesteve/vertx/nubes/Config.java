@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.beans.Introspector;
 
 import com.github.aesteve.vertx.nubes.auth.AuthMethod;
 import com.github.aesteve.vertx.nubes.context.RateLimit;
@@ -137,7 +136,10 @@ public class Config {
 			Object serviceInstance;
 			try {
 				Class<?> clazz = Class.forName(className);
-				String serviceName = Introspector.decapitalize(clazz.getSimpleName()); // Convention : instance name will be "myService" for "MyService" class
+				String simpleName = clazz.getSimpleName();
+				// Convention : instance name will be "myService" for "MyService" class
+				String serviceName = simpleName.replaceFirst(simpleName.substring(0,1), simpleName.substring(0,1).toLowerCase());
+				
 				if (param!=null) {
 					Constructor<?> ctor = clazz.getConstructor(JsonObject.class); // Convention : Services with constructor
 					 serviceInstance = ctor.newInstance(param); // will always have a single JsonObject param
