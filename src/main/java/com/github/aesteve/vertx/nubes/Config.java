@@ -21,6 +21,8 @@ import io.vertx.ext.web.templ.TemplateEngine;
 import io.vertx.ext.web.templ.ThymeleafTemplateEngine;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +31,7 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.beans.Introspector;
 
 import com.github.aesteve.vertx.nubes.auth.AuthMethod;
 import com.github.aesteve.vertx.nubes.context.RateLimit;
@@ -97,6 +100,8 @@ public class Config {
 
 		instance.json = json;
 		instance.vertx = vertx;
+
+		// packages
 		instance.srcPackage = json.getString("src-package");
 		instance.i18nDir = json.getString("i18nDir", "web/i18n/");
 		if (!instance.i18nDir.endsWith("/")) {
@@ -123,21 +128,32 @@ public class Config {
 		}
 		instance.fixturePackages = fixtures.getList();
 
-		// Register services included in config
+		//services
 		JsonObject services = json.getJsonObject("services", new JsonObject());
 		instance.serviceRegistry = new ServiceRegistry(vertx);
 		services.forEach(entry -> {
-			String name = entry.getKey();
-			String className = (String) entry.getValue();
+			String className = entry.getKey();
+			Object param = entry.getValue();
+			Object serviceInstance;
 			try {
 				Class<?> clazz = Class.forName(className);
-				instance.serviceRegistry.registerService(name, clazz.newInstance());
-			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+				String serviceName = Introspector.decapitalize(clazz.getSimpleName()); // Convention : instance name will be "myService" for "MyService" class
+				if (param!=null) {
+					Constructor<?> ctor = clazz.getConstructor(JsonObject.class); // Convention : Services with constructor
+					 serviceInstance = ctor.newInstance(param); // will always have a single JsonObject param
+				}
+				else{
+					serviceInstance = clazz.newInstance();
+				}
+				instance.serviceRegistry.registerService(serviceName, serviceInstance);
+
+			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+					| NoSuchMethodException | InvocationTargetException e) {
 				throw new RuntimeException(e);
 			}
 		});
 
-		// Register templateEngines for extensions added in config
+		// templates
 		JsonArray templates = json.getJsonArray("templates", new JsonArray());
 		if (templates.contains("hbs")) {
 			instance.templateEngines.put("hbs", HandlebarsTemplateEngine.create());
@@ -152,6 +168,7 @@ public class Config {
 			instance.templateEngines.put("html", ThymeleafTemplateEngine.create());
 		}
 
+		//throttling
 		JsonObject rateLimitJson = json.getJsonObject("throttling");
 		if (rateLimitJson != null) {
 			int count = rateLimitJson.getInteger("count");
@@ -160,6 +177,7 @@ public class Config {
 			instance.rateLimit = new RateLimit(count, value, timeUnit);
 		}
 
+		//authentications
 		String auth = json.getString("auth-type");
 		JsonObject authProperties = json.getJsonObject("auth-properties");
 
@@ -174,11 +192,7 @@ public class Config {
 					instance.authProvider = ShiroAuth.create(vertx, ShiroAuthRealmType.PROPERTIES, authProperties);
 					break;
 				case "JDBC":
-					String dbName = json.getString("db-name");
-					if (dbName == null) {
-						throw new IllegalArgumentException("You cannot use JDBC authentication without a DB");
-					}
-					JDBCClient client = JDBCClient.createShared(vertx, authProperties, dbName);
+					JDBCClient client = JDBCClient.createShared(vertx, authProperties);
 					instance.authProvider = JDBCAuth.create(client);
 					break;
 				default:
@@ -188,6 +202,8 @@ public class Config {
 			log.warn("You have defined " + auth + " as auth type, but didn't provide any configuration, can't create authProvider");
 		}
 
+
+		//resources paths
 		instance.webroot = json.getString("webroot", "web/assets");
 		instance.assetsPath = json.getString("static-path", "/assets");
 		instance.tplDir = json.getString("views-dir", "web/views");
