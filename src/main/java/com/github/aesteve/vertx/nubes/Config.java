@@ -155,6 +155,32 @@ public class Config {
 			}
 		});
 
+		//service proxy
+		JsonObject servicesProxy = json.getJsonObject("services-proxy", new JsonObject());
+		servicesProxy.forEach(entry -> {
+			String className = entry.getKey();
+			Object param = entry.getValue();
+			Object serviceInstance;
+			try {
+				Class<?> clazz = Class.forName(className);
+
+				String serviceName = "proxy__" + clazz.getSimpleName();
+
+				if (param!=null) {
+					Constructor<?> ctor = clazz.getConstructor(JsonObject.class); // Convention : Services with constructor
+					serviceInstance = ctor.newInstance(param); // will always have a single JsonObject param
+				}
+				else{
+					serviceInstance = clazz.newInstance();
+				}
+				instance.serviceRegistry.registerService(serviceName, serviceInstance);
+
+			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+					| NoSuchMethodException | InvocationTargetException e) {
+				throw new RuntimeException(e);
+			}
+		});
+
 		// templates
 		JsonArray templates = json.getJsonArray("templates", new JsonArray());
 		if (templates.contains("hbs")) {
