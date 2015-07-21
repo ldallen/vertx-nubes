@@ -59,7 +59,16 @@ Here is the list of all supported configurations (for now):
 
 * **Type:**   *JSonObject*
 
-* **Description:**  This is a JsonObject which contains all the services to be registered by Nubes. The key is the service name (String), and the value is the service class name (also a String).
+* **Description:**  This is a JsonObject which contains all the services to be registered by Nubes. The key is the service class name (String), and the value is the parameter for the service constructor. By convention, the parameter will always be a `JsonObject`, and will be `null` if no parameter is needed.
+
+* **Default:**   No default value.
+
+### `services-proxy`
+
+
+* **Type:**   *JSonObject*
+
+* **Description:**  Same as for services
 
 * **Default:**   No default value.
 
@@ -125,7 +134,7 @@ Here is an example of a valid `conf.json` file :
   	"domain-package":"i.put.my.domains.where.i.want.to",
   	"fixture-packages":["fixtures.are.not.in.convention.package"],
   	"controller-packages":["definitely.not.using.your.conventions"],
-  	"services":{"taskService":"mycompany.myproject.services.TaskService"},
+  	"services":{"mycompany.myproject.services.TaskService":null},
   	"templates":["hbs"]
 
 }
